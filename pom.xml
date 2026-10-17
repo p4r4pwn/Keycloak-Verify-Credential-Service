@@ -6,7 +6,7 @@
 
     <groupId>eu.p4r4pwn</groupId>
     <artifactId>verify-credential-service</artifactId>
-    <name>Verify Credential Service</name>
+    <name>Keycloak Verify Credential Service</name>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
