@@ -23,7 +23,7 @@ public class VerifyCredentialUserResources {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getResource(@NotNull String resource) {
-        VerifyCredential verifyCredential = this.credentialsService.getUserCredential(this.user, resource);
+        VerifyCredential verifyCredential = this.credentialsService.getResourceCredential(this.user, resource);
         return Response.ok(verifyCredential).build();
     }
 

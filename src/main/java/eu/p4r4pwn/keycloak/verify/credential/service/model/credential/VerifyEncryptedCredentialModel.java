@@ -50,10 +50,10 @@ public class VerifyEncryptedCredentialModel extends CredentialModel {
 
     public static VerifyEncryptedCredentialModel createFromValues(final String resource,
                                                                   final String resourceUsername,
-                                                                  final String resourcePassword) {
-        VerifyCredentialData credentialData = new VerifyCredentialData(resourceUsername, "plain", "none");
+                                                                  final String resourcePassword,
+                                                                  final String keyName) {
+        VerifyCredentialData credentialData = new VerifyCredentialData(resourceUsername, "plain", keyName);
         VerifyEncryptedCredentialSecret secretData = new VerifyEncryptedCredentialSecret(resourcePassword);
-        // todo encryption
         VerifyEncryptedCredentialModel verifyEncryptedCredentialModel = new VerifyEncryptedCredentialModel(resource, credentialData, secretData);
 
         try {
@@ -74,6 +74,10 @@ public class VerifyEncryptedCredentialModel extends CredentialModel {
 
     public String getResourceUsername() {
         return this.credentialData.getUsername();
+    }
+
+    public String getEncryptionKeyName() {
+        return this.credentialData.getKeyName();
     }
 
     @Override
