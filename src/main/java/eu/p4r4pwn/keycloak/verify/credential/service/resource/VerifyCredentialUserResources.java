@@ -1,5 +1,6 @@
 package eu.p4r4pwn.keycloak.verify.credential.service.resource;
 
+import eu.p4r4pwn.keycloak.verify.credential.service.enums.UpdateCredentialResult;
 import eu.p4r4pwn.keycloak.verify.credential.service.resource.dto.VerifyCredential;
 import eu.p4r4pwn.keycloak.verify.credential.service.services.VerifyCredentialService;
 import io.smallrye.common.constraint.NotNull;
@@ -22,7 +23,7 @@ public class VerifyCredentialUserResources {
     @Path("/resources/{resource}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getResource(@NotNull String resource) {
+    public Response getResourceCredentials(@NotNull String resource) {
         VerifyCredential verifyCredential = this.credentialsService.getResourceCredential(this.user, resource);
         return Response.ok(verifyCredential).build();
     }
@@ -31,8 +32,16 @@ public class VerifyCredentialUserResources {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    public Response getResource(@NotNull String resource, VerifyCredential verifyCredential) {
-        this.credentialsService.storeResourceCredential(this.user, resource, verifyCredential.getUsername(), verifyCredential.getPassword());
-        return Response.status(201).build();
+    public Response storeResourceCredentials(@NotNull String resource, VerifyCredential verifyCredential) {
+        final UpdateCredentialResult updateCredentialResult = this.credentialsService
+                .storeResourceCredential(this.user, resource,
+                        verifyCredential.getUsername(), verifyCredential.getPassword());
+
+        if (updateCredentialResult == UpdateCredentialResult.CREATED) {
+            return Response.status(201).build();
+        } else {
+            return Response.status(204).header("updated", "true").build();
+        }
+
     }
 }

@@ -28,6 +28,7 @@ public class VerifyEncryptedCredentialModel extends CredentialModel {
     }
 
     public static VerifyEncryptedCredentialModel createFromCredentialModel(CredentialModel credentialModel) {
+        if (credentialModel == null) return null;
         try {
             VerifyCredentialData credentialData = isBlank(credentialModel.getCredentialData()) ? null :
                     JsonSerialization.readValue(credentialModel.getCredentialData(), VerifyCredentialData.class);
@@ -51,8 +52,9 @@ public class VerifyEncryptedCredentialModel extends CredentialModel {
     public static VerifyEncryptedCredentialModel createFromValues(final String resource,
                                                                   final String resourceUsername,
                                                                   final String resourcePassword,
-                                                                  final String keyName) {
-        VerifyCredentialData credentialData = new VerifyCredentialData(resourceUsername, "plain", keyName);
+                                                                  final String keyName,
+                                                                  final String storageFormat) {
+        VerifyCredentialData credentialData = new VerifyCredentialData(resourceUsername, storageFormat, keyName);
         VerifyEncryptedCredentialSecret secretData = new VerifyEncryptedCredentialSecret(resourcePassword);
         VerifyEncryptedCredentialModel verifyEncryptedCredentialModel = new VerifyEncryptedCredentialModel(resource, credentialData, secretData);
 

@@ -47,6 +47,7 @@ You need to create:
 Afterward, in `Authentication > Policies > Password policy`, create:
 + `Credential Service Enc Key ID` referencing your `aes-generated` key provider name (not kid)
 + `Credential Service JWE Key Provider` referencing the `rsa-enc` key provider name (not kid)
++ `Credential Service Storage Format` indicates how passwords should be stored, either 'jwe' or 'plain'
 
 ## Retrieving resource credentials
 
@@ -61,3 +62,20 @@ You can submit a "plaintext" password to the service, it will in turn be encrypt
 ### JWE
 
 IAG and IBM's supplied demo application generate a JWE. This JWE is decrypted by the provider and the password is stored as ciphertext using the realm's AES256 key.
+
+For a plaintext password:
+
+```http request
+PUT /realms/{realm}/verify-creds/users/{user}/resources/{resource} HTTP/1.1
+Content-Type: application/json
+
+{"username": "resource-user", "password": "resource-password"}
+```
+For a JWE password:
+
+```http request
+PUT /realms/{realm}/verify-creds/users/{user}/resources/{resource} HTTP/1.1
+Content-Type: application/json
+
+{"username": "resource-user", "password": "{jwe}..."}
+```
