@@ -1,6 +1,6 @@
 {
   "id" : "097fd49b-9ac0-4fdf-9c75-0ea054464201",
-  "realm" : "test",
+  "realm" : "plain",
   "notBefore" : 0,
   "defaultSignatureAlgorithm" : "RS256",
   "revokeRefreshToken" : false,

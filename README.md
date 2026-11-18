@@ -6,12 +6,13 @@ Currently supports:
 + Plaintext storage of resource passwords
 + Password encryption: Use a realm AES256 key for encryption
 + Encryption policies: Config which key to use, probably use Password Policy Providers
++ JWE storage: Support of JWE storage
 
 Roadmap:
 + [x] Password encryption: Use a realm AES256 key for encryption
 + [x] Encryption policies: Config which key to use, probably use Password Policy Providers
 + [ ] Re-encryption policies: Re-encrypt according to encryption policies
-+ [ ] JWE storage: Support of JWE storage
++ [x] JWE storage: Support of JWE storage
 + [ ] API Authorization: Use resource-server client with roles + client credentials for IAG
 
 # Installation
@@ -61,7 +62,9 @@ You can submit a "plaintext" password to the service, it will in turn be encrypt
 
 ### JWE
 
-IAG and IBM's supplied demo application generate a JWE. This JWE is decrypted by the provider and the password is stored as ciphertext using the realm's AES256 key.
+IAG and IBM's supplied demo application generate a JWE. This JWE is either:
++ decrypted by the provider and the password is stored as ciphertext using the realm's AES256 key,
++ stored as-is without reencryption.
 
 For a plaintext password:
 

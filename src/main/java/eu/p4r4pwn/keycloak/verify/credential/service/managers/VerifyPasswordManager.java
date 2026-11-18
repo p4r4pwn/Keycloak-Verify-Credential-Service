@@ -36,6 +36,7 @@ public class VerifyPasswordManager {
     protected RealmModel realm;
     protected String realmEncryptionKeyName;
     protected GeneratedAesKeyProvider realmEncryptionKey;
+    protected StorageFormat realmStorageFormat;
 
     public VerifyPasswordManager(KeycloakSession session) {
         this.session = session;
@@ -51,18 +52,16 @@ public class VerifyPasswordManager {
     }
 
     public VerifyCredential getVerifyCredentialRepr(final VerifyEncryptedCredentialModel credentialModel) {
+        // Get the expected storage format
+        this.realmStorageFormat = getRealmStorageFormat();
+
         loadOrGetRealmEncryptionKey();
 
-        final String encryptedResourcePassword = credentialModel.getResourcePassword();
-
-        if (!isUsingCurrentEncryptionKey(credentialModel)) {
-            // todo requires reeencryption
-            LOGGER.trace("password requires reencryption");
-        }
+        final String storedResourcePassword = credentialModel.getResourcePassword();
 
         // decrypt the password with the associated encryption key, assume it is the realm encryption key
         // because we would have reencrypted it prior
-        final String decryptedPassword = getDecryptedPasswordValue(encryptedResourcePassword);
+        final String decryptedPassword = getDecryptedPasswordValue(storedResourcePassword);
 
         return new VerifyCredential(
                 credentialModel.getResourceUsername(),
@@ -73,11 +72,17 @@ public class VerifyPasswordManager {
                                                   final String resourceUsername,
                                                   final String resourcePassword) {
         UpdateCredentialResult updateCredentialResult;
+        // Get the expected storage format
+        this.realmStorageFormat = getRealmStorageFormat();
+
         // Get the current encryption key
         final String encryptionKeyProviderName = getRealmEncryptionKeyProviderName();
-        if (encryptionKeyProviderName == null || encryptionKeyProviderName.isBlank())
+        if (this.realmStorageFormat == StorageFormat.PLAIN &&
+                (encryptionKeyProviderName == null || encryptionKeyProviderName.isBlank()))
+            // only matters when we need to reencrypt
             throw new InternalServerErrorException("no resource credential encryption key defined");
-        final GeneratedAesKeyProvider encryptionKey = getEncryptionKeyProvider(encryptionKeyProviderName);
+        final GeneratedAesKeyProvider encryptionKey =
+                getEncryptionKeyProvider(encryptionKeyProviderName, this.realmStorageFormat == StorageFormat.PLAIN);
 
         // Check if there is an existing credential
         final Optional<VerifyEncryptedCredentialModel> existingModel = getResourceCredentialForUser(user, resource);
@@ -90,13 +95,11 @@ public class VerifyPasswordManager {
             updateCredentialResult = UpdateCredentialResult.CREATED;
         }
 
-        // Get the expected storage format
-        final StorageFormat realmStorageFormat = getRealmStorageFormat();
-
+        // prepare for storage
         final Optional<PasswordStorageRecord> storageRecord =
-                getResourcePasswordForStorage(realmStorageFormat, resourcePassword, encryptionKey);
+                getResourcePasswordForStorage(this.realmStorageFormat, resourcePassword, encryptionKey);
 
-        if (storageRecord.isEmpty()) throw new InternalServerErrorException("failed to prepare password for stoage");
+        if (storageRecord.isEmpty()) throw new InternalServerErrorException("failed to prepare password for storage");
 
         // Store the credential
         CredentialModel credentialModel = user.credentialManager().createStoredCredential(
@@ -193,12 +196,14 @@ public class VerifyPasswordManager {
     }
 
     protected boolean isUsingCurrentEncryptionKey(final VerifyEncryptedCredentialModel credentialModel) {
+        if (this.realmStorageFormat == StorageFormat.JWE) return true; // doesn't matter when storage is JWE
         return this.realmEncryptionKeyName.equalsIgnoreCase(credentialModel.getEncryptionKeyName());
     }
 
-    private String getDecryptedPasswordValue(final String encryptedPassword) {
+    private String getDecryptedPasswordValue(final String storedResourcePassword) {
+        if (this.realmStorageFormat == StorageFormat.JWE) return storedResourcePassword;
         final KeyWrapper keyWrapper = getKeyWrapper(this.realmEncryptionKey);
-        return AESUtils.decryptPassword(keyWrapper, encryptedPassword);
+        return AESUtils.decryptPassword(keyWrapper, storedResourcePassword);
     }
 
     protected KeyWrapper getKeyWrapper(final GeneratedAesKeyProvider keyProvider) {
@@ -208,17 +213,33 @@ public class VerifyPasswordManager {
     protected void loadOrGetRealmEncryptionKey() {
         if (realmEncryptionKey != null) return;
         this.realmEncryptionKeyName = getRealmEncryptionKeyProviderName();
-        if (this.realmEncryptionKeyName == null || this.realmEncryptionKeyName.isBlank())
+        if (this.realmStorageFormat == StorageFormat.PLAIN &&
+                (this.realmEncryptionKeyName == null || this.realmEncryptionKeyName.isBlank()))
             throw new InternalServerErrorException("no resource credential encryption key defined");
-        this.realmEncryptionKey = getEncryptionKeyProvider(this.realmEncryptionKeyName);
+        this.realmEncryptionKey = getEncryptionKeyProvider(this.realmEncryptionKeyName,
+                this.realmStorageFormat == StorageFormat.PLAIN);
+    }
+
+    protected Optional<ComponentModel> getAesEncryptionKeyProviderComponentModel(final String encryptionKeyName) {
+        return this.realm.getComponentsStream(realm.getId(), KeyProvider.class.getName())
+                .filter(component -> (Objects.equals(component.getProviderId(), "aes-generated")
+                        && component.getName().equals(encryptionKeyName)))
+                .findFirst();
+    }
+
+    protected GeneratedAesKeyProvider getEncryptionKeyProvider(final String encryptionKeyName,
+                                                               boolean required) {
+        final Optional<ComponentModel> componentModel =
+                getAesEncryptionKeyProviderComponentModel(encryptionKeyName);
+
+        if (required && componentModel.isEmpty())
+            throw new InternalServerErrorException("no active encryption key");
+
+        return componentModel.map(GeneratedAesKeyProvider::new).orElse(null);
     }
 
     protected GeneratedAesKeyProvider getEncryptionKeyProvider(final String encryptionKeyName) {
-        ComponentModel componentModel = this.realm.getComponentsStream(realm.getId(), KeyProvider.class.getName())
-                .filter(component -> (Objects.equals(component.getProviderId(), "aes-generated")
-                        && component.getName().equals(encryptionKeyName)))
-                .findFirst().orElseThrow(() -> new InternalServerErrorException("no active encryption key"));
-        return new GeneratedAesKeyProvider(componentModel);
+        return getEncryptionKeyProvider(encryptionKeyName, true);
     }
 
     protected String getRealmEncryptionKeyProviderName() {

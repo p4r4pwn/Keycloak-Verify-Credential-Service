@@ -17,6 +17,7 @@
         <version.jupiter-junit>6.1.3</version.jupiter-junit>
         <version.testcontainers>2.0.5</version.testcontainers>
         <version.testcontainers.keycloak>4.4.0</version.testcontainers.keycloak>
+        <version.jjwt>0.13.0</version.jjwt>
     </properties>
 
     <dependencies>
@@ -42,6 +43,24 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${version.jupiter-junit}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${version.jjwt}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${version.jjwt}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+            <version>${version.jjwt}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
